@@ -482,12 +482,14 @@ pub fn capture_snapshot_rtsp(
     fs::create_dir_all(&snapshot_output_dir)?;
 
     let safe_user = if username.is_empty() { "noauth" } else { username };
+    let safe_pass = if password.is_empty() { "noauth" } else { password };
     let filename = format!(
-        "{}/{}_{}_{}.jpg",
+        "{}/{}_{}_{}_{}.jpg",
         snapshot_output_dir,
         target_ip,
         target_port,
-        safe_user
+        safe_user,
+        safe_pass
     );
 
     println!("[*] Trying to capture RTSP snapshot from {url} -> {filename}");

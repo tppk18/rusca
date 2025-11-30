@@ -10,7 +10,7 @@ use axum::{
 use futures_util::{SinkExt, StreamExt};
 use tokio::sync::mpsc;
 
-use crate::model::{ClientMessage, ServerMessage};
+use crate::model::{ClientMessage, ServerMessage, RUNTIME_STATE};
 use crate::scan::run_scan_job;
 
 /// HTTP → WebSocket апгрейд
@@ -38,6 +38,18 @@ async fn handle_socket(stream: WebSocket) {
     });
 
     let stop_flag  = Arc::new(AtomicBool::new(false));
+
+    {
+        let st = RUNTIME_STATE.read().unwrap().clone();
+        let snap = ServerMessage::Snapshot {
+            running: st.running,
+            paused: st.paused,
+            status: st.last_status.clone(),
+            completed: st.completed,
+            total: st.total,
+        };
+        let _ = tx_out.send(serde_json::to_string(&snap).unwrap());
+    }
 
     // Основной цикл: принимаем команды клиента
     while let Some(Ok(msg)) = receiver.next().await {

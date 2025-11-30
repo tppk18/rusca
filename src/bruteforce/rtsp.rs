@@ -100,7 +100,19 @@ impl BruteforceModule for RTSPBruteforceModule {
                     let _ = tx.send(serde_json::to_string(&msg).unwrap());
                 }
 
-                if let Ok(msg ) = capture_snapshot_rtsp(addr.ip().to_string(), target_port, &res.username.clone(), &res.password.clone()) {}
+                let screen_cast: std::io::Result<()> = match tokio::task::spawn_blocking(move || {
+                    capture_snapshot_rtsp(addr.ip().to_string(),
+                    target_port,
+                    &res.username.clone(),
+                    &res.password.clone())
+                }).await {
+                    Ok(r) => r,
+                    Err(e) => {
+                        // можно залогировать ошибку, если надо
+                        eprintln!("rtsp screencast task panicked: {e}");
+                        return;
+                    }
+                };
 
                 if let Ok(msg) = serde_json::to_string(&ServerMessage::Finding { finding }) {
                     let _ = tx.send(msg);

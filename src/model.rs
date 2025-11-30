@@ -1,4 +1,18 @@
 use serde::{Deserialize, Serialize};
+use std::sync::RwLock;
+use once_cell::sync::Lazy;
+
+#[derive(Clone, Default)]
+pub struct RuntimeState {
+    pub running: bool,
+    pub paused: bool,
+    pub last_status: String,
+    pub completed: u64,
+    pub total: u64,
+}
+
+pub static RUNTIME_STATE: Lazy<RwLock<RuntimeState>> =
+    Lazy::new(|| RwLock::new(RuntimeState::default()));
 
 /// Параметры сканирования, приходят с фронта
 #[derive(Debug, Deserialize, Clone)]
@@ -142,9 +156,17 @@ pub struct Finding {
 #[serde(tag = "type", rename_all = "snake_case")]
 pub enum ServerMessage {
     Status { text: String },
-    Port { addr: String },
-    Finding { finding: Finding },
     Error { error: String },
+    Port { addr: String },
     Progress { completed: u64, total: u64 },
+    Finding { finding: Finding },
     Finished,
+    Snapshot {
+        running: bool,
+        paused: bool,
+        status: String,
+        completed: u64,
+        total: u64,
+    },
 }
+

@@ -1,8 +1,8 @@
 use crate::modules::detect_service_and_build_finding;
-use crate::model::{ScanParams, ServerMessage, Finding, FindingKind};
+use crate::model::{ScanParams, ServerMessage, Finding, FindingKind, RUNTIME_STATE, RuntimeState};
 use crate::export::append_html_event;
 
-use crate::bruteforce::{BruteforceConfig, BruteforceModule};
+use crate::bruteforce::{BruteforceConfig};
 use crate::bruteforce_manager::BruteforceManager;
 
 use std::{
@@ -153,13 +153,27 @@ pub fn run_scan_blocking(
         return Err("После фильтрации список портов пуст".to_owned());
     }
 
+
+    {
+        let mut st = RUNTIME_STATE.write().unwrap();
+        st.running = true;
+        st.paused = false;
+        st.last_status = "Запуск сканирования".to_string();
+        st.completed = 0;
+        st.total = 0; // потом переопределим когда посчитаем total_units
+    }
+
     // 2. Собираем адреса из UI + файла
     let addresses = build_address_list(&params.addresses_text, &params.file_text)?;
 
-    let msg = ServerMessage::Status {
-        text: format!("После парсинга адресов: {} элементов", addresses.len()),
-    };
+    let text = format!("После парсинга адресов: {} элементов", addresses.len());
+    let msg = ServerMessage::Status { text: text.clone() };
+    {
+        let mut st = RUNTIME_STATE.write().unwrap();
+        st.last_status = text;
+    }
     let _ = tx.send(serde_json::to_string(&msg).unwrap());
+
 
     // 3. Опции myrustscan
     let mut opts = Opts::default();
@@ -185,9 +199,12 @@ pub fn run_scan_blocking(
             }
         }
 
-        let msg = ServerMessage::Status {
-            text: format!("Добавлено {} случайных IP", added),
-        };
+        let text = format!("Добавлено {} случайных IP", added);
+        let msg = ServerMessage::Status { text: text.clone() };
+        {
+            let mut st = RUNTIME_STATE.write().unwrap();
+            st.last_status = text;
+        }
         let _ = tx.send(serde_json::to_string(&msg).unwrap());
     }
 
@@ -201,9 +218,12 @@ pub fn run_scan_blocking(
         ips.shuffle(&mut rng);
     }
 
-    let msg = ServerMessage::Status {
-        text: format!("Всего IP к сканированию (после shuffle): {}", ips.len()),
-    };
+    let text = format!("Всего IP к сканированию (после shuffle): {}", ips.len());
+    let msg = ServerMessage::Status { text: text.clone() };
+    {
+        let mut st = RUNTIME_STATE.write().unwrap();
+        st.last_status = text;
+    }
     let _ = tx.send(serde_json::to_string(&msg).unwrap());
 
     // 6. Исключаемые порты
@@ -215,18 +235,25 @@ pub fn run_scan_blocking(
 
     // 7. Прогресс: IP * порты
     let total_units: u64 = ips.len() as u64 * ports.len() as u64;
+    {
+        let mut st = RUNTIME_STATE.write().unwrap();
+        st.total = total_units;
+    }
     let mut completed_units: u64 = 0;
 
     // 8. Защита от Too many open files
     const MAX_SAFE_BATCH: u16 = 2500;
     let effective_batch = params.batch_size.min(MAX_SAFE_BATCH);
     if effective_batch != params.batch_size {
-        let warn = ServerMessage::Status {
-            text: format!(
-                "Batch size {} слишком большой, снижаю до {} (чтобы не ловить 'Too many open files')",
-                params.batch_size, effective_batch
-            ),
-        };
+        let text = format!(
+            "Batch size {} слишком большой, снижаю до {} (чтобы не ловить 'Too many open files')",
+            params.batch_size, effective_batch
+        );
+        let warn = ServerMessage::Status { text: text.clone() };
+        {
+            let mut st = RUNTIME_STATE.write().unwrap();
+            st.last_status = text;
+        }
         let _ = tx.send(serde_json::to_string(&warn).unwrap());
     }
 
@@ -245,12 +272,21 @@ pub fn run_scan_blocking(
     let timeout = Duration::from_millis(params.timeout_ms as u64);
 
     let mut ip_offset: usize = 0;
+
     while ip_offset < ips.len() {
         // Пауза
         if stop.load(Ordering::SeqCst) {
-            let _ = tx.send(serde_json::to_string(&ServerMessage::Status {
-                text: "Сканирование остановлено пользователем".to_string(),
-            }).unwrap());
+            let text = "Сканирование остановлено пользователем".to_string();
+            {
+                let mut st = RUNTIME_STATE.write().unwrap();
+                st.running = false;
+                st.paused = false;
+                st.last_status = text.clone();
+            }
+
+            let _ = tx.send(serde_json::to_string(
+                &ServerMessage::Status { text }
+            ).unwrap());
             let _ = tx.send(serde_json::to_string(&ServerMessage::Finished).unwrap());
             return Ok(());
         }
@@ -258,9 +294,17 @@ pub fn run_scan_blocking(
         // пауза
         while pause.load(Ordering::SeqCst) {
             if stop.load(Ordering::SeqCst) {
-                let _ = tx.send(serde_json::to_string(&ServerMessage::Status {
-                    text: "Сканирование остановлено во время паузы".to_string(),
-                }).unwrap());
+                let text = "Сканирование остановлено пользователем".to_string();
+                {
+                    let mut st = RUNTIME_STATE.write().unwrap();
+                    st.running = false;
+                    st.paused = false;
+                    st.last_status = text.clone();
+                }
+
+                let _ = tx.send(serde_json::to_string(
+                    &ServerMessage::Status { text }
+                ).unwrap());
                 let _ = tx.send(serde_json::to_string(&ServerMessage::Finished).unwrap());
                 return Ok(());
             }
@@ -336,6 +380,14 @@ pub fn run_scan_blocking(
 
         ip_offset = ip_end;
     }
+    {
+        let mut st = RUNTIME_STATE.write().unwrap();
+        st.running = false;
+        st.paused = false;
+        st.last_status = "Сканирование завершено".to_string();
+    }
+
+    let _ = tx.send(serde_json::to_string(&ServerMessage::Finished).unwrap());
 
     Ok(())
 }

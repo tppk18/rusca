@@ -11,6 +11,9 @@ mod export;
 mod modules;
 mod bruteforce;
 mod bruteforce_manager;
+mod reports;
+
+use crate::reports::list_reports;
 
 #[tokio::main]
 async fn main() {
@@ -20,6 +23,8 @@ async fn main() {
 
     let app = Router::new()
         .route("/ws", get(ws::ws_handler))
+        .route("/api/reports", get(list_reports))
+        .nest_service("/results", tower_http::services::ServeDir::new("results"))
         .nest_service("/", ServeDir::new("static"));
 
     let addr: SocketAddr = "0.0.0.0:3000".parse().unwrap();

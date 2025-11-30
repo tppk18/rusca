@@ -754,6 +754,61 @@
         overflow: auto;
       }
     }
+
+    /* === REPORT LIST PANEL IMPROVED === */
+
+    #reportsList {
+      margin-top: -8px;
+      padding: 6px 8px;
+      background: rgba(0, 0, 0, 0.35);
+      border: 1px solid var(--accent-cyan);
+      box-shadow:
+        0 0 0 1px #000,
+        0 0 12px #01cdfe55;
+      font-size: 9px;
+      min-width: 240px;
+      max-width: 260px;
+      max-height: 120px;
+      overflow-y: auto;
+      line-height: 1.45;
+      text-transform: uppercase;
+    }
+
+    .report-entry {
+      padding: 4px 2px;
+      border-bottom: 1px dotted rgba(255,255,255,0.2);
+      display: flex;
+      flex-direction: column;
+      gap: 2px;
+    }
+
+    .report-entry:last-child {
+      border-bottom: none;
+    }
+
+    .report-entry a {
+      color: var(--accent-cyan);
+      text-decoration: none;
+      font-family: "Press Start 2P", monospace;
+      font-size: 9px;
+      letter-spacing: 0.12em;
+    }
+
+    .report-entry .report-date {
+      color: var(--accent-pink);
+      font-size: 8px;
+      opacity: 0.85;
+    }
+
+    .report-entry:hover {
+      background: rgba(1, 205, 254, 0.08);
+      box-shadow: inset 0 0 6px #01cdfe55;
+    }
+
+    .report-entry a:hover {
+      text-decoration: underline;
+    }
+
   </style>
 </head>
 <body>
@@ -790,7 +845,9 @@
       <div class="nav-line">
         <div class="nav-item active">SCAN_CORE</div>
         <div class="nav-item">MODULES</div>
-        <div class="nav-item">LOGS.HTML</div>
+        <div class="nav-item" id="reportsList">
+          LOGS.HTML: загрузка...
+        </div>
         <div class="nav-item">404_FAQ.TXT</div>
       </div>
     </div>
@@ -1167,6 +1224,32 @@ scanme.nmap.org"></textarea>
           updateProgress(currentTotal, currentTotal || currentCompleted);
           break;
 
+        case "snapshot":
+          // восстановление UI при перезагрузке
+          setStatus(msg.status || "Состояние неизвестно");
+          updateProgress(msg.completed || 0, msg.total || 0);
+
+          if (msg.running) {
+            startBtn.disabled = true;
+            pauseBtn.disabled = false;
+            stopBtn.disabled = false;
+            // если хочешь, можно по msg.paused выставить текст кнопки
+            if (msg.paused) {
+              isPaused = true;
+              pauseBtn.textContent = "Продолжить";
+            } else {
+              isPaused = false;
+              pauseBtn.textContent = "Пауза";
+            }
+          } else {
+            startBtn.disabled = false;
+            pauseBtn.disabled = true;
+            stopBtn.disabled = true;
+            isPaused = false;
+            pauseBtn.textContent = "Пауза";
+          }
+          break;
+
         default:
           console.warn("Unknown message", msg);
       }
@@ -1334,6 +1417,53 @@ scanme.nmap.org"></textarea>
   }
   updateSysTime();
   setInterval(updateSysTime, 1000);
+  async function loadReports() {
+    const reportsEl = document.getElementById("reportsList");
+    if (!reportsEl) return; // на всякий случай, чтобы не падать
+
+    try {
+      const resp = await fetch("/api/reports");
+      if (!resp.ok) {
+        reportsEl.textContent = "LOGS.HTML: error " + resp.status;
+        return;
+      }
+      const data = await resp.json();
+      if (!data.length) {
+        reportsEl.textContent = "LOGS.HTML: пусто";
+        return;
+      }
+
+      const maxShow = 8;
+      const items = data.slice(0, maxShow);
+
+      reportsEl.innerHTML = "<strong>LOGS.HTML</strong><br><br>";
+
+      items.forEach(r => {
+        const wrapper = document.createElement("div");
+        wrapper.className = "report-entry";
+
+        const date = document.createElement("div");
+        date.className = "report-date";
+        date.textContent = r.date;
+
+        const a = document.createElement("a");
+        a.href = r.url;
+        a.textContent = r.file;
+        a.target = "_blank";
+        a.rel = "noopener noreferrer";
+
+        wrapper.appendChild(date);
+        wrapper.appendChild(a);
+
+        reportsEl.appendChild(wrapper);
+      });
+    } catch (e) {
+      console.error(e);
+      reportsEl.textContent = "LOGS.HTML: ошибка загрузки";
+    }
+  }
+
+  loadReports();
 </script>
 </body>
 </html>

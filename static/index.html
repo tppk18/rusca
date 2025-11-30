@@ -1,0 +1,1340 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+  <meta charset="UTF-8" />
+  <title>RUSCA //</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link
+    href="https://fonts.googleapis.com/css2?family=Press+Start+2P&family=Handjet&display=swap"
+    rel="stylesheet"
+  >
+  <style>
+    :root {
+      --bg: #050018;
+      --bg-alt: #0b0024;
+      --bg-panel: #120027;
+      --accent-pink: #ff71ce;
+      --accent-cyan: #01cdfe;
+      --accent-yellow: #fffb96;
+      --accent-purple: #b967ff;
+      --accent-green: #05ffa1;
+      --text-main: #fdfbff;
+      --text-soft: #cbd5ff;
+      --text-muted: #7f8ea3;
+      --danger: #ff4b6b;
+      --ok: #6bff9e;
+      --border-soft: rgba(255, 255, 255, 0.18);
+    }
+
+    * {
+      box-sizing: border-box;
+    }
+
+    html, body {
+      margin: 0;
+      padding: 0;
+      height: 100%;
+      background:
+        radial-gradient(circle at top left, #ff71ce22 0, transparent 55%),
+        radial-gradient(circle at bottom right, #01cdfe22 0, transparent 55%),
+        radial-gradient(circle at center, #240046 0, #050018 65%);
+      color: var(--text-main);
+      font-family: "Handjet", system-ui, -apple-system, BlinkMacSystemFont,
+        "Segoe UI", sans-serif;
+      image-rendering: pixelated;
+    }
+
+    body {
+      display: flex;
+      flex-direction: column;
+      min-height: 100vh;
+      position: relative;
+    }
+
+    body::before {
+      content: "";
+      pointer-events: none;
+      position: fixed;
+      inset: 0;
+      background:
+        repeating-linear-gradient(
+          to bottom,
+          rgba(0, 0, 0, 0.7),
+          rgba(0, 0, 0, 0.7) 1px,
+          rgba(0, 0, 0, 0.3) 2px,
+          rgba(0, 0, 0, 0.3) 3px
+        );
+      opacity: 0.25;
+      mix-blend-mode: multiply;
+      z-index: 100;
+    }
+
+    body::after {
+      content: "";
+      pointer-events: none;
+      position: fixed;
+      inset: 0;
+      background:
+        radial-gradient(circle at top left, transparent 0, #000000aa 70%),
+        radial-gradient(circle at bottom right, transparent 0, #000000aa 70%);
+      opacity: 0.35;
+      z-index: 99;
+    }
+
+    header {
+      padding: 8px 10px 4px;
+      border-bottom: 2px solid var(--accent-cyan);
+      background:
+        linear-gradient(90deg, #0b001a, #1a0040 40%, #0b001a 80%);
+      position: relative;
+      box-shadow:
+        0 0 0 1px #000,
+        0 0 25px #ff71ce55;
+      z-index: 5;
+    }
+
+    .crt-glow {
+      position: absolute;
+      inset: 0;
+      pointer-events: none;
+      background:
+        radial-gradient(circle at center, #ffffff11 0, transparent 60%);
+      mix-blend-mode: screen;
+    }
+
+    .header-inner {
+      position: relative;
+      z-index: 1;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 16px;
+    }
+
+    .brand-left {
+      display: flex;
+      flex-direction: column;
+      gap: 4px;
+    }
+
+    .window-titlebar {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      padding: 2px 6px;
+      background: linear-gradient(90deg, #ff71ce, #b967ff, #01cdfe);
+      border: 1px solid #ffffffaa;
+      box-shadow: 0 0 0 1px #000;
+    }
+
+    .window-title-dot {
+      width: 8px;
+      height: 8px;
+      border-radius: 50%;
+      background: #000;
+      border: 1px solid #fff;
+      box-shadow: 0 0 5px #000;
+    }
+
+    .window-title-text {
+      font-family: "Press Start 2P", monospace;
+      font-size: 9px;
+      text-transform: uppercase;
+      white-space: nowrap;
+      color: #000;
+    }
+
+    .brand-main {
+      display: flex;
+      align-items: baseline;
+      gap: 10px;
+      margin-top: 4px;
+    }
+
+    .brand-logo {
+      font-family: "Press Start 2P", monospace;
+      font-size: 16px;
+      letter-spacing: 0.18em;
+      text-transform: uppercase;
+      color: var(--accent-yellow);
+      text-shadow:
+        0 0 6px #ff71ce,
+        0 0 12px #ff71ce,
+        0 0 18px #01cdfe;
+      position: relative;
+      animation: glitch 2.4s infinite steps(2, end);
+    }
+
+    .brand-logo::before,
+    .brand-logo::after {
+      content: "RUSCA";
+      position: absolute;
+      top: 0;
+      left: 0;
+      opacity: 0.75;
+      mix-blend-mode: screen;
+    }
+
+    .brand-logo::before {
+      color: #ff71ce;
+      transform: translate(-1px, 1px);
+      clip-path: polygon(0 0, 100% 0, 100% 40%, 0 45%);
+    }
+
+    .brand-logo::after {
+      color: #01cdfe;
+      transform: translate(1px, -1px);
+      clip-path: polygon(0 60%, 100% 55%, 100% 100%, 0 100%);
+    }
+
+    @keyframes glitch {
+      0% { transform: translate(0,0); }
+      8% { transform: translate(-1px,1px) skewX(-2deg); }
+      14% { transform: translate(1px,-1px) skewX(2deg); }
+      20% { transform: translate(0,0); }
+      55% { transform: translate(0,0); }
+      60% { transform: translate(-2px,0); }
+      62% { transform: translate(2px,0); }
+      65% { transform: translate(0,0); }
+      100% { transform: translate(0,0); }
+    }
+
+    .brand-subtitle {
+      font-size: 11px;
+      color: var(--text-soft);
+      text-transform: uppercase;
+      letter-spacing: 0.16em;
+    }
+
+    .brand-tagline {
+      font-size: 10px;
+      color: var(--text-muted);
+      text-transform: uppercase;
+      letter-spacing: 0.2em;
+      margin-top: 4px;
+    }
+
+    .brand-tagline span {
+      color: var(--accent-pink);
+    }
+
+    .status-right {
+      display: flex;
+      flex-direction: column;
+      align-items: flex-end;
+      gap: 6px;
+      font-family: "Press Start 2P", monospace;
+    }
+
+    .status-row {
+      display: flex;
+      gap: 8px;
+      flex-wrap: wrap;
+      justify-content: flex-end;
+    }
+
+    .status-chip {
+      border: 1px solid var(--border-soft);
+      background: repeating-linear-gradient(
+          45deg,
+          #050018,
+          #050018 2px,
+          #0b0024 2px,
+          #0b0024 4px
+        );
+      color: var(--accent-yellow);
+      padding: 4px 8px;
+      font-size: 9px;
+      text-transform: uppercase;
+      display: inline-flex;
+      align-items: center;
+      gap: 4px;
+      box-shadow: 0 0 0 1px #000;
+    }
+
+    .status-label {
+      color: var(--text-muted);
+    }
+
+    .status-value {
+      color: var(--accent-green);
+    }
+
+    .status-value.live {
+      animation: statusPulse 1.6s infinite steps(2, end);
+    }
+
+    @keyframes statusPulse {
+      0%, 100% { text-shadow: 0 0 6px var(--accent-green); opacity: 0.9; }
+      50% { text-shadow: 0 0 12px var(--accent-green); opacity: 1; }
+    }
+
+    .nav-line {
+      margin-top: 4px;
+      display: flex;
+      gap: 12px;
+      font-size: 9px;
+      text-transform: uppercase;
+      letter-spacing: 0.18em;
+      color: var(--text-muted);
+    }
+
+    .nav-item {
+      position: relative;
+      padding-bottom: 2px;
+      cursor: default;
+    }
+
+    .nav-item.active {
+      color: var(--accent-cyan);
+    }
+
+    .nav-item.active::after {
+      content: "";
+      position: absolute;
+      left: 0;
+      right: 0;
+      bottom: -2px;
+      height: 2px;
+      background: linear-gradient(90deg, transparent, #ff71ce, #01cdfe, transparent);
+      box-shadow: 0 0 10px #ff71ce;
+    }
+
+    main {
+      flex: 1;
+      display: flex;
+      gap: 10px;
+      padding: 10px;
+      max-width: 1400px;
+      margin: 0 auto;
+      position: relative;
+      z-index: 2;
+    }
+
+    .panel {
+      position: relative;
+      border-radius: 0;
+      border: 2px solid #00ffff66;
+      background:
+        linear-gradient(135deg, #070013, #16002e);
+      box-shadow:
+        0 0 0 1px #000,
+        0 0 30px #01cdfe55;
+      padding: 8px 10px 10px;
+      overflow: hidden;
+    }
+
+    .panel::before {
+      content: "";
+      position: absolute;
+      inset: 0;
+      background:
+        repeating-linear-gradient(
+          135deg,
+          transparent 0,
+          transparent 4px,
+          rgba(255, 255, 255, 0.02) 4px,
+          rgba(255, 255, 255, 0.02) 5px
+        );
+      opacity: 0.6;
+      mix-blend-mode: soft-light;
+      pointer-events: none;
+    }
+
+    .panel-inner {
+      position: relative;
+      z-index: 1;
+    }
+
+    .panel-left {
+      flex: 1.1;
+      min-width: 0;
+    }
+
+    .panel-right {
+      flex: 1.2;
+      min-width: 0;
+    }
+
+    .panel-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: baseline;
+      margin-bottom: 6px;
+      font-family: "Press Start 2P", monospace;
+    }
+
+    .panel-title {
+      font-size: 10px;
+      text-transform: uppercase;
+      letter-spacing: 0.16em;
+      color: var(--accent-cyan);
+    }
+
+    .panel-subtitle {
+      font-size: 9px;
+      color: var(--text-muted);
+      text-transform: uppercase;
+      letter-spacing: 0.16em;
+    }
+
+    .panel-divider {
+      margin: 4px 0 8px;
+      height: 1px;
+      background:
+        linear-gradient(90deg, transparent, var(--accent-pink), var(--accent-cyan), transparent);
+    }
+
+    label {
+      display: block;
+      margin-top: 6px;
+      font-size: 10px;
+      letter-spacing: 0.12em;
+      text-transform: uppercase;
+      color: var(--accent-yellow);
+      font-family: "Press Start 2P", monospace;
+    }
+
+    input[type="text"],
+    input[type="number"],
+    textarea {
+      margin-top: 4px;
+      width: 100%;
+      box-sizing: border-box;
+      padding: 5px 7px;
+      border-radius: 0;
+      border: 1px solid #00ffff99;
+      font-family: "Handjet", monospace;
+      font-size: 14px;
+      background:
+        repeating-linear-gradient(
+          0deg,
+          #020010,
+          #020010 1px,
+          #050020 1px,
+          #050020 2px
+        );
+      color: var(--text-main);
+      outline: none;
+      transition: border-color 0.15s ease, box-shadow 0.15s ease, background 0.15s ease;
+    }
+
+    input[type="text"]:focus,
+    input[type="number"]:focus,
+    textarea:focus {
+      border-color: var(--accent-pink);
+      box-shadow:
+        0 0 0 1px #000,
+        0 0 16px #ff71ceaa;
+      background:
+        repeating-linear-gradient(
+          0deg,
+          #050020,
+          #050020 1px,
+          #0a0030 1px,
+          #0a0030 2px
+        );
+    }
+
+    textarea {
+      min-height: 80px;
+      resize: vertical;
+    }
+
+    .input-inline {
+      display: grid;
+      grid-template-columns: repeat(2, minmax(0, 1fr));
+      gap: 6px;
+    }
+
+    .toggle-row {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 8px 14px;
+      margin-top: 6px;
+      font-size: 10px;
+      font-family: "Press Start 2P", monospace;
+    }
+
+    .toggle-row label {
+      display: flex;
+      align-items: center;
+      gap: 4px;
+      margin-top: 0;
+      text-transform: uppercase;
+    }
+
+    input[type="checkbox"] {
+      width: 14px;
+      height: 14px;
+      appearance: none;
+      border-radius: 0;
+      border: 1px solid #00ffffaa;
+      background: #050018;
+      position: relative;
+      cursor: pointer;
+      box-shadow: 0 0 0 1px #000;
+    }
+
+    input[type="checkbox"]:checked {
+      border-color: var(--accent-pink);
+      background:
+        linear-gradient(135deg, #ff71ce, #b967ff);
+      box-shadow: 0 0 10px #ff71ceaa;
+    }
+
+    input[type="checkbox"]:checked::after {
+      content: "✜";
+      position: absolute;
+      inset: -2px 0 0 0;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 10px;
+      color: #000;
+    }
+
+    button {
+      margin-top: 8px;
+      padding: 7px 12px;
+      border-radius: 0;
+      border: 1px solid #ffffffaa;
+      background:
+        linear-gradient(90deg, #ff71ce, #b967ff, #01cdfe);
+      color: #000;
+      cursor: pointer;
+      font-weight: 700;
+      font-size: 10px;
+      letter-spacing: 0.18em;
+      text-transform: uppercase;
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      font-family: "Press Start 2P", monospace;
+      box-shadow:
+        0 0 0 1px #000,
+        0 0 18px #ff71ceaa;
+      transition: transform 0.07s ease, box-shadow 0.07s ease, filter 0.07s ease, opacity 0.07s ease;
+    }
+
+    button span.sig {
+      font-size: 12px;
+    }
+
+    button:hover:not(:disabled) {
+      transform: translate(-1px, -1px);
+      filter: brightness(1.1);
+      box-shadow:
+        0 0 0 1px #000,
+        0 0 24px #ff71ceee;
+    }
+
+    button:active:not(:disabled) {
+      transform: translate(1px, 1px);
+      box-shadow:
+        0 0 0 1px #000,
+        0 0 10px #b967ffbb;
+    }
+
+    button.secondary {
+      background:
+        linear-gradient(90deg, #22223b, #4a4e69);
+      color: var(--text-main);
+      box-shadow:
+        0 0 0 1px #000,
+        0 0 8px #01cdfe77;
+    }
+
+    button.danger {
+      background:
+        linear-gradient(90deg, #ff4b6b, #b3003c);
+      color: #fff;
+      box-shadow:
+        0 0 0 1px #000,
+        0 0 16px #ff4b6b99;
+    }
+
+    button:disabled {
+      opacity: 0.5;
+      cursor: default;
+      box-shadow: 0 0 0 1px #000;
+    }
+
+    .button-row {
+      display: flex;
+      gap: 8px;
+      margin-top: 10px;
+      flex-wrap: wrap;
+    }
+
+    #status {
+      font-size: 10px;
+      margin-top: 6px;
+      color: var(--text-soft);
+      letter-spacing: 0.16em;
+      text-transform: uppercase;
+      font-family: "Press Start 2P", monospace;
+    }
+
+    #progressContainer {
+      width: 100%;
+      height: 9px;
+      background:
+        repeating-linear-gradient(
+          90deg,
+          #050018,
+          #050018 4px,
+          #0b0024 4px,
+          #0b0024 8px
+        );
+      border-radius: 0;
+      overflow: hidden;
+      margin-top: 6px;
+      border: 1px solid #00ffffaa;
+      box-shadow: 0 0 0 1px #000;
+    }
+
+    #progressBar {
+      height: 100%;
+      width: 0%;
+      background:
+        repeating-linear-gradient(
+          45deg,
+          #05ffa1,
+          #05ffa1 4px,
+          #fffb96 4px,
+          #fffb96 8px
+        );
+      box-shadow: 0 0 16px #05ffa1cc;
+      transition: width 0.15s linear;
+    }
+
+    #progressText {
+      font-size: 9px;
+      margin-top: 2px;
+      color: var(--text-muted);
+      letter-spacing: 0.16em;
+      text-transform: uppercase;
+      font-family: "Press Start 2P", monospace;
+    }
+
+    .hint {
+      margin-top: 8px;
+      font-size: 9px;
+      color: var(--text-muted);
+      line-height: 1.4;
+      font-family: "Press Start 2P", monospace;
+      text-transform: uppercase;
+      letter-spacing: 0.12em;
+    }
+
+    .hint span {
+      color: var(--accent-pink);
+    }
+
+    .console-header {
+      font-size: 10px;
+      color: var(--accent-yellow);
+      letter-spacing: 0.18em;
+      text-transform: uppercase;
+      font-family: "Press Start 2P", monospace;
+      margin-bottom: 4px;
+    }
+
+    .console-sub {
+      font-size: 10px;
+      color: var(--text-muted);
+      margin-bottom: 8px;
+      font-family: "Handjet", monospace;
+    }
+
+    .console-sub span {
+      color: var(--accent-cyan);
+    }
+
+    #log {
+      font-family: "Handjet", ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas,
+        "Liberation Mono", "Courier New", monospace;
+      font-size: 15px;
+      border-radius: 0;
+      border: 1px solid #ff71ceaa;
+      padding: 16px 10px 10px;
+      height: 300px;
+      overflow-y: auto;
+      background:
+        radial-gradient(circle at top left, #0b001f 0, #000000 70%);
+      color: var(--text-main);
+      box-shadow:
+        0 0 0 1px #000,
+        0 0 22px #b967ff88;
+      position: relative;
+    }
+
+    #log::before {
+      content: "[ WIRED GLITCH TERMINAL ]";
+      position: absolute;
+      left: 8px;
+      top: 4px;
+      font-size: 10px;
+      color: var(--text-muted);
+      letter-spacing: 0.16em;
+      text-transform: uppercase;
+      pointer-events: none;
+      font-family: "Press Start 2P", monospace;
+    }
+
+    #log div {
+      padding-left: 0;
+      margin-top: 2px;
+      white-space: pre-wrap;
+    }
+
+    #log .status { color: var(--accent-purple); }
+    #log .open { color: var(--ok); text-shadow: 0 0 6px #05ffa199; }
+    #log .error { color: var(--danger); text-shadow: 0 0 8px #ff4b6b99; }
+
+    /* protocol indicators */
+
+    .proto-strip {
+      margin-top: 10px;
+      display: flex;
+      flex-wrap: wrap;
+      gap: 6px;
+      font-family: "Press Start 2P", monospace;
+      font-size: 9px;
+      text-transform: uppercase;
+      letter-spacing: 0.12em;
+    }
+
+    .proto-pill {
+      padding: 3px 6px;
+      border-radius: 0;
+      border: 1px solid #444;
+      background:
+        linear-gradient(135deg, rgba(5, 5, 25, 0.9), rgba(10, 5, 40, 0.9));
+      display: inline-flex;
+      align-items: center;
+      gap: 4px;
+      box-shadow: 0 0 0 1px #000;
+      color: var(--text-soft);
+      position: relative;
+    }
+
+    .proto-pill-label {
+      opacity: 0.9;
+    }
+
+    .proto-pill-count {
+      min-width: 18px;
+      text-align: right;
+      color: var(--accent-yellow);
+    }
+
+    .proto-pill.flash {
+      animation: protoFlash 0.35s ease-out;
+    }
+
+    @keyframes protoFlash {
+      0% { box-shadow: 0 0 0 1px #000, 0 0 4px #ffffffaa; transform: translateY(0); }
+      40% { box-shadow: 0 0 0 1px #000, 0 0 14px #ffffffee; transform: translateY(-1px); }
+      100% { box-shadow: 0 0 0 1px #000, 0 0 4px #ffffff44; transform: translateY(0); }
+    }
+
+    .proto-pill[data-proto="ssh"]  { border-color: #ff71ceaa; color: #ff71ce; }
+    .proto-pill[data-proto="http"] { border-color: #01cdfeaa; color: #01cdfe; }
+    .proto-pill[data-proto="rtsp"] { border-color: #fffb96aa; color: #fffb96; }
+    .proto-pill[data-proto="ftp"]{ border-color: #ff4b6baa; color: #ff4b6b; }
+    .proto-pill[data-proto="other"]{ border-color: #7f8ea3aa; color: #cbd5ff; }
+
+    @media (max-width: 1024px) {
+      main {
+        flex-direction: column;
+        height: calc(100vh - 80px);
+        overflow: auto;
+      }
+    }
+  </style>
+</head>
+<body>
+<header>
+  <div class="crt-glow"></div>
+  <div class="header-inner">
+    <div class="brand-left">
+      <div class="window-titlebar">
+        <div class="window-title-dot"></div>
+        <div class="window-title-dot"></div>
+        <div class="window-title-dot"></div>
+        <div class="window-title-text">RUSCA.EXE - 1642</div>
+      </div>
+      <div class="brand-main">
+        <div class="brand-logo">RUSCA</div>
+        <div class="brand-subtitle">old net / glitch / deep scan ritual</div>
+      </div>
+      <div class="brand-tagline">
+        <span>◎</span> DIALING INTO THE VOID // WHEN YOU SCAN THE NET, THE NET SCANS YOU BACK
+      </div>
+    </div>
+
+    <div class="status-right">
+      <div class="status-row">
+        <div class="status-chip">
+          <span class="status-label">SYS_TIME</span>
+          <span class="status-value" id="sysTime">--:--:--</span>
+        </div>
+        <div class="status-chip">
+          <span class="status-label">STATUS</span>
+          <span class="status-value live" id="sysStatus">IDLE</span>
+        </div>
+      </div>
+      <div class="nav-line">
+        <div class="nav-item active">SCAN_CORE</div>
+        <div class="nav-item">MODULES</div>
+        <div class="nav-item">LOGS.HTML</div>
+        <div class="nav-item">404_FAQ.TXT</div>
+      </div>
+    </div>
+  </div>
+</header>
+
+<main>
+  <section class="panel panel-left">
+    <div class="panel-inner">
+      <div class="panel-header">
+        <div class="panel-title">SCAN PARAMETERS</div>
+        <div class="panel-subtitle">protocol: tcp // ritual: directed cast</div>
+      </div>
+      <div class="panel-divider"></div>
+
+      <label>
+        Адреса / диапазоны:
+        <textarea id="addresses" placeholder="Примеры:
+192.168.0.1
+192.168.0.0/24
+192.168.1.10-192.168.1.20
+scanme.nmap.org"></textarea>
+      </label>
+
+      <label>
+        Файл с адресами/диапазонами:
+        <input type="file" id="fileInput" />
+      </label>
+
+      <div class="input-inline">
+        <label>
+          Порты (перечень):
+          <input type="text" id="portsList" placeholder="например: 22,80,443,8080" />
+        </label>
+      </div>
+
+      <div class="input-inline">
+        <label>
+          Timeout (мс):
+          <input type="number" id="timeoutMs" value="1000" min="1" />
+        </label>
+
+        <label>
+          Batch size:
+          <input type="number" id="batchSize" value="2500" min="1" max="65535" />
+        </label>
+      </div>
+
+      <div class="input-inline">
+        <label>
+          Случайных адресов:
+          <input type="number" id="randomTargets" value="0" min="0" />
+        </label>
+
+        <label>
+          IP chunk size:
+          <input type="number" id="ipChunkSize" value="256" min="1" />
+        </label>
+      </div>
+
+      <div class="input-inline">
+        <label>
+          Повторы (tries):
+          <input type="number" id="tries" value="1" min="1" max="10" />
+        </label>
+      </div>
+
+      <!-- НОВЫЕ ПОЛЯ ДЛЯ БРУТФОРСА -->
+      <div class="panel-divider"></div>
+      
+      <div class="panel-header">
+        <div class="panel-title">BRUTEFORCE MODULES</div>
+        <div class="panel-subtitle">protocol: auth // ritual: password spray</div>
+      </div>
+
+      <div class="toggle-row">
+        <label>
+          <input type="checkbox" id="bruteforceEnabled" />
+          ENABLE BRUTEFORCE
+        </label>
+      </div>
+
+      <div class="input-inline">
+        <label>
+          Username file:
+          <input type="text" id="usernameFile" value="usernames.txt" placeholder="usernames.txt" />
+        </label>
+
+        <label>
+          Password file:
+          <input type="text" id="passwordFile" value="passwords.txt" placeholder="passwords.txt" />
+        </label>
+      </div>
+
+      <div class="input-inline">
+        <label>
+          Max attempts:
+          <input type="number" id="maxAttempts" value="1000" min="1" max="100000" />
+        </label>
+
+        <label>
+          Delay (ms):
+          <input type="number" id="bruteforceDelay" value="500" min="0" max="10000" />
+        </label>
+      </div>
+
+      <div class="hint">
+        ⚠ Брутфорс запускается автоматически для обнаруженных сервисов (SSH, FTP, HTTP-auth и др.)<br />
+        <span>ПРЕДУПРЕЖДЕНИЕ:</span> ИСПОЛЬЗУЙТЕ ТОЛЬКО С РАЗРЕШЕНИЯ ИЛИ НА СВОИХ СИСТЕМАХ.
+      </div>
+
+      <!-- Продолжение существующих полей... -->
+      <div class="toggle-row">
+        <label>
+          <input type="checkbox" id="randomOrder" checked />
+          RANDOM ORDER
+        </label>
+        <label>
+          <input type="checkbox" id="udp" />
+          UDP SCAN
+        </label>
+        <label>
+          <input type="checkbox" id="accessible" checked />
+          ACCESSIBLE OUTPUT
+        </label>
+      </div>
+
+      <div class="button-row">
+        <button id="startBtn">
+          <span class="sig">▶</span> START SCAN
+        </button>
+        <button id="pauseBtn" class="secondary" disabled>
+          <span class="sig">⏸</span> PAUSE
+        </button>
+        <button id="stopBtn" class="secondary danger" disabled>
+          <span class="sig">■</span> STOP
+        </button>
+      </div>
+
+      <div id="status">Статус: не запущено</div>
+
+      <div id="progressContainer">
+        <div id="progressBar"></div>
+      </div>
+      <div id="progressText">0% (0 / 0)</div>
+
+      <div class="hint">
+        ⚠ Сканируй только свои хосты или с явного разрешения.<br />
+        <span>ПОМНИ:</span> ЭТОТ ИНТЕРФЕЙС – ТОЛЬКО МАСКА, СЕТЬ — НАСТОЯЩАЯ.
+      </div>
+    </div>
+  </section>
+
+  <section class="panel panel-right">
+    <div class="panel-inner">
+      <div class="panel-header">
+        <div class="panel-title">ABYSS CONSOLE</div>
+        <div class="panel-subtitle">layer_01 // echo from the deep</div>
+      </div>
+      <div class="panel-divider"></div>
+
+      <div class="console-header">
+        NO MATTER WHERE YOU SCAN, <span>EVERYTHING GLITCHES BACK</span>.
+      </div>
+      <div class="console-sub">
+        события появляются в реальном времени; каждый открытный порт — это новый пиксель на мёртвом неоновом небе.
+      </div>
+
+      <!-- индикаторы протоколов -->
+      <div class="proto-strip">
+        <div class="proto-pill" data-proto="ssh">
+          <span class="proto-pill-label">SSH</span>
+          <span class="proto-pill-count" id="proto-ssh">0</span>
+        </div>
+        <div class="proto-pill" data-proto="ftp">
+          <span class="proto-pill-label">FTP</span>
+          <span class="proto-pill-count" id="proto-ftp">0</span>
+        </div>
+        <div class="proto-pill" data-proto="http">
+          <span class="proto-pill-label">HTTP</span>
+          <span class="proto-pill-count" id="proto-http">0</span>
+        </div>
+        <div class="proto-pill" data-proto="rtsp">
+          <span class="proto-pill-label">RTSP</span>
+          <span class="proto-pill-count" id="proto-rtsp">0</span>
+        </div>
+        <div class="proto-pill" data-proto="other">
+          <span class="proto-pill-label">OTHER</span>
+          <span class="proto-pill-count" id="proto-other">0</span>
+        </div>
+      </div>
+
+      <div id="log"></div>
+    </div>
+  </section>
+</main>
+
+<script>
+  let socket = null;
+  const statusEl = document.getElementById('status');
+  const sysTimeEl = document.getElementById('sysTime');
+  const sysStatusEl = document.getElementById('sysStatus');
+  const logEl = document.getElementById('log');
+  const startBtn = document.getElementById('startBtn');
+  const pauseBtn = document.getElementById('pauseBtn');
+  const stopBtn = document.getElementById('stopBtn');
+  const progressBar = document.getElementById('progressBar');
+  const progressText = document.getElementById('progressText');
+
+  const protoCounters = {
+    ssh: document.getElementById('proto-ssh'),
+    http: document.getElementById('proto-http'),
+    rtsp: document.getElementById('proto-rtsp'),
+    ftp: document.getElementById('proto-ftp'),
+    other: document.getElementById('proto-other')
+  };
+
+  let isPaused = false;
+  let currentCompleted = 0;
+  let currentTotal = 0;
+  let lastActivity = Date.now();
+
+  const noiseLines = [
+    "> LINK LOST... RESYNCING PHASE",
+    "> GHOST PACKET DETECTED ON WIRE",
+    "> CARRIER WAVE DISTORTION...",
+    "> ROUTE LEAK? OR JUST PARANOIA.",
+    "> SIDECHANNEL WHISPERS: 0xDEAD BEEF",
+    "> [IDLE] LISTENING TO PORTS SING",
+    "> ECHOES FROM PORT 0: NULL DREAMS",
+    "> NETSPIRIT: \"TRY HARDER.\"",
+  ];
+
+  function markActivity() {
+    lastActivity = Date.now();
+  }
+
+  function normalizeKind(kind) {
+    if (!kind) return "other";
+    const k = String(kind).toLowerCase();
+    if (k.includes("http")) return "http";
+    if (k.includes("ssh")) return "ssh";
+    if (k.includes("rtsp")) return "rtsp";
+    if (k.includes("ftp")) return "ftp";
+    return "other";
+  }
+
+  function bumpProto(kind) {
+    const key = normalizeKind(kind);
+    const counter = protoCounters[key];
+    if (!counter) return;
+    const pill = counter.closest('.proto-pill');
+    const val = parseInt(counter.textContent, 10) || 0;
+    counter.textContent = String(val + 1);
+    if (pill) {
+      pill.classList.add('flash');
+      setTimeout(() => pill.classList.remove('flash'), 300);
+    }
+  }
+
+  function setStatus(text) {
+    statusEl.textContent = "Статус: " + text;
+    if (sysStatusEl) {
+      sysStatusEl.textContent = text.toUpperCase().slice(0, 20);
+    }
+    markActivity();
+  }
+
+  function appendLogLine(text, cls) {
+    const line = document.createElement('div');
+    if (cls) line.classList.add(cls);
+    line.textContent = text;
+    logEl.appendChild(line);
+    logEl.scrollTop = logEl.scrollHeight;
+    markActivity();
+  }
+
+  function resetProgress() {
+    currentCompleted = 0;
+    currentTotal = 0;
+    progressBar.style.width = "0%";
+    progressText.textContent = "0% (0 / 0)";
+  }
+
+  function updateProgress(completed, total) {
+    currentCompleted = completed;
+    currentTotal = total;
+    const percent = total ? Math.min(100, Math.round((completed / total) * 100)) : 0;
+    progressBar.style.width = percent + "%";
+    progressText.textContent = percent + "% (" + completed + " / " + total + ")";
+    markActivity();
+  }
+
+  function clearConsole() {
+    logEl.textContent = "";
+  }
+
+  function resetProtoCounters() {
+    Object.values(protoCounters).forEach(el => {
+      if (el) el.textContent = "0";
+    });
+  }
+
+  function connectWs() {
+    const proto = location.protocol === 'https:' ? 'wss' : 'ws';
+    socket = new WebSocket(`${proto}://${location.host}/ws`);
+
+    socket.onopen = () => {
+      setStatus("WebSocket подключен");
+      pauseBtn.disabled = true;
+      stopBtn.disabled = true;
+    };
+
+    socket.onclose = () => {
+      setStatus("WebSocket отключён");
+      startBtn.disabled = false;
+      pauseBtn.disabled = true;
+      stopBtn.disabled = true;
+      pauseBtn.textContent = "Пауза";
+      isPaused = false;
+    };
+
+    socket.onerror = (e) => {
+      setStatus("Ошибка WebSocket");
+      console.error(e);
+    };
+
+  socket.onmessage = (event) => {
+    try {
+      const msg = JSON.parse(event.data);
+      switch (msg.type) {
+        case "status":
+          appendLogLine("[*] " + msg.text, "status");
+          break;
+
+        case "port":
+          appendLogLine("[+] " + msg.addr + " открыт", "open");
+          break;
+
+        case "finding":
+          if (msg.finding) {
+            const k = msg.finding.kind || "service";
+            const title = msg.finding.title ? " :: " + msg.finding.title : "";
+            const details = msg.finding.details ? " :: " + msg.finding.details : "";
+            
+            // Специальное форматирование для успешного брутфорса
+            if (msg.finding.title && msg.finding.title.includes("Bruteforce Success")) {
+              appendLogLine(
+                `[BRUTE_SUCCESS][${k}] ${msg.finding.addr} :: ${msg.finding.details}`,
+                "open"
+              );
+            } else {
+              appendLogLine(
+                `[FIND][${k}] ${msg.finding.addr}${title}${details}`,
+                "open"
+              );
+            }
+            bumpProto(k);
+          }
+          break;
+
+        case "progress":
+          updateProgress(msg.completed, msg.total);
+          break;
+
+        case "finished":
+          appendLogLine("[*] Сканирование завершено.", "status");
+          setStatus("Сканирование завершено");
+          startBtn.disabled = false;
+          pauseBtn.disabled = true;
+          stopBtn.disabled = true;
+          pauseBtn.textContent = "Пауза";
+          isPaused = false;
+          updateProgress(currentTotal, currentTotal || currentCompleted);
+          break;
+
+        default:
+          console.warn("Unknown message", msg);
+      }
+    } catch (e) {
+      console.error("Bad JSON", e, event.data);
+    }
+  };
+  }
+
+  connectWs();
+
+  startBtn.addEventListener('click', () => {
+    if (!socket || socket.readyState !== WebSocket.OPEN) {
+      alert("WebSocket ещё не подключен");
+      return;
+    }
+
+    clearConsole();
+    resetProgress();
+    resetProtoCounters();
+
+    const addressesText = document.getElementById('addresses').value || "";
+    const portsListRaw = document.getElementById("portsList").value || "";
+    const ports = portsListRaw
+      .split(/[,;\s]+/)
+      .map(p => parseInt(p, 10))
+      .filter(p => Number.isInteger(p) && p > 0 && p <= 65535);
+    const timeoutMs = parseInt(document.getElementById('timeoutMs').value, 10) || 1000;
+    const batchSize = parseInt(document.getElementById('batchSize').value, 10) || 2500;
+    const tries = parseInt(document.getElementById('tries').value, 10) || 1;
+    const randomOrder = document.getElementById('randomOrder').checked;
+    const udp = document.getElementById('udp').checked;
+    const accessible = document.getElementById('accessible').checked;
+    const randomTargets = parseInt(document.getElementById('randomTargets').value, 10) || 0;
+    const ipChunkSize = parseInt(document.getElementById('ipChunkSize').value, 10) || 256;
+    
+    // НОВЫЕ ПОЛЯ БРУТФОРСА
+    const bruteforceEnabled = document.getElementById('bruteforceEnabled').checked;
+    const usernameFile = document.getElementById('usernameFile').value || "usernames.txt";
+    const passwordFile = document.getElementById('passwordFile').value || "passwords.txt";
+    const maxAttempts = parseInt(document.getElementById('maxAttempts').value, 10) || 1000;
+    const bruteforceDelay = parseInt(document.getElementById('bruteforceDelay').value, 10) || 500;
+    
+    const fileInput = document.getElementById('fileInput');
+    const file = fileInput.files[0];
+
+    if (!ports.length) {
+      alert("Нужно указать хотя бы один порт (например: 22,80,443)");
+      return;
+    }
+
+    startBtn.disabled = true;
+    pauseBtn.disabled = false;
+    stopBtn.disabled = false;
+    pauseBtn.textContent = "Пауза";
+    isPaused = false;
+    setStatus("Запуск сканирования...");
+
+    const sendRequest = (fileText) => {
+      const params = {
+        addresses_text: addressesText,
+        file_text: fileText || "",
+        ports,
+        timeout_ms: timeoutMs,
+        batch_size: batchSize,
+        tries,
+        random_targets: randomTargets,
+        ip_chunk_size: ipChunkSize,
+        random_order: randomOrder,
+        udp,
+        accessible,
+        exclude_ports: "",
+        
+        // НОВЫЕ ПАРАМЕТРЫ БРУТФОРСА
+        bruteforce_enabled: bruteforceEnabled,
+        username_file: usernameFile,
+        password_file: passwordFile,
+        max_attempts: maxAttempts,
+        bruteforce_delay_ms: bruteforceDelay
+      };
+
+      const payload = {
+        type: "start_scan",
+        data: params
+      };
+
+      socket.send(JSON.stringify(payload));
+      appendLogLine("[*] Запрос на сканирование отправлен.", "status");
+      
+      // Логируем настройки брутфорса если включен
+      if (bruteforceEnabled) {
+        appendLogLine(`[*] Bruteforce: ON (${usernameFile} × ${passwordFile}, max ${maxAttempts} attempts)`, "status");
+      }
+    };
+
+    if (file) {
+      const reader = new FileReader();
+      reader.onload = () => {
+        sendRequest(reader.result);
+      };
+      reader.onerror = () => {
+        alert("Не удалось прочитать файл");
+        startBtn.disabled = false;
+        pauseBtn.disabled = true;
+        stopBtn.disabled = true;
+      };
+      reader.readAsText(file);
+    } else {
+      sendRequest("");
+    }
+  });
+
+  pauseBtn.addEventListener('click', () => {
+    if (!socket || socket.readyState !== WebSocket.OPEN) return;
+
+    if (!isPaused) {
+      socket.send(JSON.stringify({ type: "pause" }));
+      isPaused = true;
+      pauseBtn.textContent = "Продолжить";
+      appendLogLine("[*] Запрос на паузу отправлен.", "status");
+      setStatus("Пауза...");
+    } else {
+      socket.send(JSON.stringify({ type: "resume" }));
+      isPaused = false;
+      pauseBtn.textContent = "Пауза";
+      appendLogLine("[*] Запрос на продолжение отправлен.", "status");
+      setStatus("Возобновление...");
+    }
+  });
+
+  stopBtn.addEventListener('click', () => {
+    if (!socket || socket.readyState !== WebSocket.OPEN) return;
+
+    socket.send(JSON.stringify({ type: "stop" }));
+    appendLogLine("[*] Запрос на остановку отправлен.", "status");
+    setStatus("Остановка...");
+    isPaused = false;
+    pauseBtn.textContent = "Пауза";
+    pauseBtn.disabled = true;
+    stopBtn.disabled = true;
+    startBtn.disabled = false;
+  });
+
+  // noise / glitch при простое
+  setInterval(() => {
+    const now = Date.now();
+    const idleMs = now - lastActivity;
+    // если давно не было событий и WebSocket жив — иногда кидаем шум
+    if (idleMs > 7000 && socket && socket.readyState === WebSocket.OPEN) {
+      if (Math.random() < 0.35) {
+        const line = noiseLines[Math.floor(Math.random() * noiseLines.length)];
+        appendLogLine(line, "status");
+      }
+    }
+  }, 2500);
+
+  // системное время в шапке
+  function updateSysTime() {
+    if (!sysTimeEl) return;
+    const now = new Date();
+    const hh = String(now.getHours()).padStart(2, "0");
+    const mm = String(now.getMinutes()).padStart(2, "0");
+    const ss = String(now.getSeconds()).padStart(2, "0");
+    sysTimeEl.textContent = `${hh}:${mm}:${ss}`;
+  }
+  updateSysTime();
+  setInterval(updateSysTime, 1000);
+</script>
+</body>
+</html>
+

